@@ -1,0 +1,59 @@
+#include "DHT.h"                  // Cargamos la libreria para el sensor de temperatura y humedad
+#define DHTPIN 8                  // Seleccionamos el pin 8 para el sensor de temperatura y humedad
+#define DHTTYPE DHT11             // Selecciona el tipo de sensor (DHT11, hay otros modelos tambien)
+
+DHT dht(DHTPIN, DHTTYPE);         // Se inicia una variable que sera usada por Arduino para comunicarse con el sensor
+int HumedadAmbiente = 1;            // Seleccionamos el pin 1 para el sensor de humedad del ambiente
+int Ventilador = 3;               // Seleccionamos el pin 3 para salida de potencia y alimentar el ventilador
+int Luz = 5;                      // Seleccionamos el pin 5 para señal de relevador 1 (alimentacion de luz)
+int Bomba = 7;                    // Seleccionamos el pin 7 para señal de relevador 2 (alimentacion de bomba de agua)
+int SensorLuz = 12;               // Seleccionamos el pin 12 para sensor de luz ambiente exterior
+boolean Regado = false;           // Define una variable para establecer si debe esperar que se humedezca la tierra
+int Temporizador = 0;             // Variable usada para contar el tiempo de espera para un nuevo ciclo de inicio de bomba
+
+void setup() {
+  Serial.begin(9600);             // Se inicia la comunicación serial 
+  dht.begin();                    // Se inicia el sensor de temperatura y humedad
+  pinMode(HumedadAmbiente, INPUT);  // Define pin como entrada
+  pinMode(Ventilador, OUTPUT);    // Define pin como salida
+  pinMode(Luz, OUTPUT);           // Define pin como salida
+  pinMode(Bomba, OUTPUT);         // Define pin como salida
+  pinMode(SensorLuz, INPUT);      // Define pin como entrada
+  pinMode(SensorPh, INPUT);       // Define pin como entrada
+}
+
+void loop() {
+  int Humedad = dht.readHumidity();             // Lee la humedad
+  int Temperatura = dht.readTemperature();      // Lee la temperatura
+  boolean HumAmbiente = digitalRead(HumedadAmbiente);   // Lee estado de humedad del ambiente (true = humedo, false = seco)
+  boolean Iluminacion = digitalRead(SensorLuz); // Lee luz ambiente (true = buena luz, false = escasa luz)
+  if (Humedad >= 80 or Temperatura >= 27){
+    digitalWrite(Ventilador, HIGH);            // Enciende el ventilador si hay humedad o mucha temperatura
+  }
+  if (Humedad < 60 and Temperatura < 23){
+    digitalWrite(Ventilador, LOW);              // Apaga el ventilador si humedad y temperatura son admisibles
+  }
+  if (Iluminacion == 0){
+    digitalWrite(Luz, HIGH);                    // Enciende la luz si hay escasa en el ambiente
+    }
+    else{
+      digitalWrite(Luz, LOW);                   // Apaga la luz si se alcanza el umbral establecido
+    }
+  if (Suelo == 0 and Regado == 0){
+    digitalWrite(Bomba, HIGH);                   // Si el suelo esta seco, prende la bomba...
+    delay(1000);                                 // aguarda 1 segundo...
+    digitalWrite(Bomba, LOW);                    // y apaga la bomba de riego
+    Regado = true;
+    Temporizador = 0;
+  }
+  if (Temporizador == 0 and Regado == true){      // Temporizador para esperar 60 minutos entre riegos
+    Temporizador = Temporizador + 1;
+  }
+  if (Temporizador == 240){                        // Llegados los 60 minutos, habilita otro riego
+    Regado = false;
+    Temporizador = 0;
+  }
+  delay(15000);                                    // Espera 15 segundos para repetir el ciclo del programa
+}
+
+
